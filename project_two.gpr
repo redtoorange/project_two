@@ -1,0 +1,5 @@
+project Project_Two is
+    for Source_Dirs use ("src");
+    for Object_Dir use "obj";
+    for Main use ("isbntest.adb");
+end Project_Two;
