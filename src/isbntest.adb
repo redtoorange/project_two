@@ -2,9 +2,49 @@
 -- Date: September 26, 2017
 -- Course: ITEC 320 Procedural Analysis and Design
 
--- Purpose: This program implements a simple calculator.
--- Input is a sequence of operations, one per line, until end of file.
+-- Purpose: The program accepts a series of ISBNs from the user, presenting
+--    errors if the input is invalid.  After an EOF is reached, the ISBNs are
+--    grouped and printed according to their checksums.  The ones with a 0
+--    checksum are valid, and those /= 0 are invalid.  If there are wildcards
+--    in the ISBN, the program will automatically replace them with the digit
+--    required to make the ISBN have a passing checksum.
 --
+--  **Sample Input**
+--  -1111111111
+--  2222222222
+--  33x3333333
+--  44----44444444
+--  5515555555
+--  66?6666666
+--  77?77?7777
+--  88333?88?88
+--  9939999
+--  --03-0?0--
+--  ?XXXXXXXXX
+--  ?23456789X
+--  ?987654321
+--   1122334455
+--
+--
+--  **Expected Output**
+--  ERROR in Line 3. Invalid character in string: <33x3333333>
+--  ERROR in Line 7. Too many question marks: <77?77?7777>
+--  ERROR in Line 8. String too long: <88333?88?88>
+--  ERROR in Line 9. String too short: <9939999>
+--  ERROR in Line 10. String too short: <--03-0?0-->
+--  ERROR in Line 14. Invalid character in string: < 1122334455 >
+--
+--  Valid Check Sums:
+--     1111111111 0
+--     2222222222 0
+--     4444444444 0
+--     6666666666 0
+--     XXXXXXXXXX 0
+--     123456789X 0
+--     X987654321 0
+--
+--  Invalid Check Sums:
+--     5515555555 10
 
 
 with Ada.Text_IO;
