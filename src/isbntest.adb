@@ -347,10 +347,11 @@ procedure Isbntest is
    -- Purpose: Print all ISBNs followed by their check digits.
    -- Parameters: isbns: array of ISBNs to print
    --         checksums: array of corresponding checksums
+   --        last_index: position in the arrays where valid data ends.
    ----------------------------------------------------------
-   procedure Print_ISBNS(    isbns : in ISBN_Array;
-                         checksums : in checksum_Array;
-                        last_index : in Natural)
+   procedure Print_ISBNS(isbns : in ISBN_Array; 
+	  				 checksums : in checksum_Array; 
+	   				last_index : in Natural)
    is
    begin
       New_Line;
