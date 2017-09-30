@@ -2,7 +2,7 @@
 -- Date: September 26, 2017
 -- Course: ITEC 320 Procedural Analysis and Design
 
--- Purpose: The program accepts a series of ISBNs from the user, presenting
+-- Purpose: The program accepts a series of ISBNs from the user and presnets
 --    errors if the input is invalid.  After an EOF is reached, the ISBNs are
 --    grouped and printed according to their checksums.  The ones with a 0
 --    checksum are valid, and those /= 0 are invalid.  If there are wildcards
@@ -59,12 +59,14 @@ procedure Isbntest is
    Invalid_Length_S : exception;
    Invalid_Length_L : exception;
 
-   subtype Digit_Int  is Natural   range 0..9;
+
+   subtype Digit_Int  is Natural   range 0..10;
    subtype Digit_Char is Character range '0'..'9';
+
 
    type ISBN           is array(1..10)            of Character;
    type ISBN_Array     is array(Natural range <>) of ISBN;
-   type checksum_Array is array(Natural range <>) of Integer;
+   type checksum_Array is array(Natural range <>) of Natural;
 
 
    ----------------------------------------------------------
@@ -73,11 +75,12 @@ procedure Isbntest is
    -- Precondition: input <= 10
    -- Postcondition: Returns '0'..'9' or 'X' for ten
    ----------------------------------------------------------
-   function Digit_To_Char( input : in Integer) return Character
+   function Digit_To_Char( input : in Digit_Int) return Character
    is
-      char : Character;
+      char : Character;      -- Hold the translated Character
    begin
       if input < 10 then
+         -- Determine the Character based on position.
          char := Character'Val( Character'Pos('0') + input );
       elsif input = 10 then
          char := 'X';
@@ -86,15 +89,16 @@ procedure Isbntest is
       return char;
    end Digit_To_Char;
 
+
    ----------------------------------------------------------
    -- Purpose: Convert a Character into it's Integer value.
    -- Parameter:  char        : Character to convert.
    --             is_wild_card: Flag set to true if char = '?'.
    -- Precondition: char is in '0'..'9', 'X' or '?'
-   -- Postcondition: Returns the value of char.  If char was ?,
+   -- Postcondition: Returns the value of char.  If char was '?',
    --     is_wild_card flag is set and value is 0.
    ----------------------------------------------------------
-   function Get_Char_Value(char         : in Character;
+   function Get_Char_Value(char         : in  Character;
                            is_wild_card : out Boolean) return Integer
    is
      value : Integer := 0;
@@ -103,7 +107,7 @@ procedure Isbntest is
 
       case char is
          when '0'..'9' =>
-            value := Integer'Value( (1 => char) );
+            value := Digit_Int'Value( (1 => char) );
 
          when 'X'      =>
             value := 10;
@@ -124,29 +128,28 @@ procedure Isbntest is
    ----------------------------------------------------------
    -- Purpose: Calculate the required value of a wildcard to have a valid
    --    checkdigit.
-   -- Parameters: current_isbn: The ISBN with the wildcard.
-   --                 wild_pos: The position of the wildcard.
-   --                      sum: The Total value of the ISBN before the wildcard
+   -- Parameters: current_isbn: ISBN with the wildcard
+   --                 wild_pos: position of the wildcard
+   --                      sum: Total value of the ISBN before the wildcard
    --                           is calculated.
    -- Precondition: wild_pos > 0
    -- Postcondition: The wildcard in the ISBN will be replaced by the digit
-   --    required to have a valid ISBN.  Sum will contain the new sum.
+   --    required to have a valid ISBN.  Sum will contain the new sum such that:
    --    sum mod 11 = 0
    ----------------------------------------------------------
    procedure Calculate_Wildcard(current_ISBN : in out ISBN;
                                 wild_pos     : in Integer;
                                 sum          : in out Integer)
    is
+      value : Integer := 0;
    begin
       for i in 0..10 loop
-         declare
-            val : Integer := i * wild_pos;
-         begin
-            if (sum + val) mod 11 = 0 then
-               sum := sum + val;
-               current_ISBN(wild_pos) := Digit_To_Char( i );
-            end if;
-         end;
+         value := i * wild_pos;
+
+         if (sum + value) mod 11 = 0 then
+            sum := sum + value;
+            current_ISBN(wild_pos) := Digit_To_Char( i );
+         end if;
       end loop;
    end Calculate_Wildcard;
 
@@ -154,23 +157,24 @@ procedure Isbntest is
    ----------------------------------------------------------
    -- Purpose: Calculate the check digit of an ISBN.
    -- Parameters: current_ISBN: ISBN to find the check digit for.
-   --                 checksum: The ISBN's checksum.
+   --                 checksum: ISBN's checksum.
    -- Postcondition: If current_ISBN contained a wildcard, it will be
    --    calculated and replaced.
-   -- Exception: Raises Multiple_Wilds exception if there are more than one
+   -- Exception: Raises Multiple_Wilds exception if there are multiple
    --    wildcards.
    ----------------------------------------------------------
    procedure Calculate_Checksum( current_ISBN : in out ISBN;
                                      checksum : out Integer)
    is
       sum          : Integer := 0;
-      char_is_wild : Boolean := False;
+      char_is_wild : Boolean := False;    -- Flag to check for wildcards
       wild_pos     : Integer := -1;
 
    begin
       for i in current_ISBN'Range loop
          sum := sum + (i * Get_Char_Value( current_ISBN(i), char_is_wild ) );
 
+         --  Cache position of first wild, raise exception if another is found
          if char_is_wild and wild_pos = -1 then
             wild_pos := i;
          elsif char_is_wild and wild_pos /= -1 then
@@ -188,7 +192,7 @@ procedure Isbntest is
 
 
    ----------------------------------------------------------
-   -- Purpose: Check the given character to ensure it a valid character.
+   -- Purpose: Check the given Character to ensure it is valid.
    -- Parameters: char: Character to check
    -- Postcondition: Returns True if char is '0'..'9' | 'X' | '?' and
    --    False if char is '-'.
@@ -210,10 +214,10 @@ procedure Isbntest is
       return valid;
    end Valid_Char;
 
+
    ----------------------------------------------------------
-   -- Purpose: Count how many Characters in a String are suitable to be ISBN
-   --    digits.
-   -- Parameters: input: the potential ISBN
+   -- Purpose: Count valid Characters in a String.
+   -- Parameters: input: User's input String
    -- Postcondition: Returns the number of valid Characters.
    ----------------------------------------------------------
    function Valid_Char_Count( input : in String) return Integer
@@ -230,11 +234,12 @@ procedure Isbntest is
       return count;
    end Valid_Char_Count;
 
+
    ----------------------------------------------------------
-   -- Purpose: Convert a valid string into an ISBN
-   -- Parameters:    input: user's input String
-   --             new_ISBN: the newly formed ISBN
-   -- Precondition: input contains 10 valid ISBN digits
+   -- Purpose: Convert a valid String into an ISBN
+   -- Parameters:    input: User's input String
+   --             new_ISBN: newly formed ISBN
+   -- Precondition:  The input String contains 10 valid ISBN digits.
    -- Postcondition: new_ISBN will contain a valid ISBN.
    ----------------------------------------------------------
    procedure Convert_To_ISBN( input : in String; new_ISBN : out ISBN )
@@ -252,13 +257,12 @@ procedure Isbntest is
 
    ----------------------------------------------------------
    -- Purpose: Validate a User's input into an ISBN, calculate the checksum and
-   --    insert them into their arrays.
-   -- Parameters: in_str: User's input string
-   --              isbns: Array of ISBNs
-   --             checks: Array of Checksums
-   --              index: index of next free slot
-   --               line: the line number of the input.
-   -- Precondition: x <= y
+   --    insert them into the designated arrays.
+   -- Parameters: in_str: User's input String
+   --              isbns: array of ISBNs
+   --             checks: array of Checksums
+   --              index: index of next free slot in both arrays
+   --               line: line number of the input
    -- Postcondition: index is incremented if the input was accepted.  isbns and
    --    checks will contain the matching ISBN and Checksum pair.
    -- Exception:  Raises Invalid_Length_S or Invalid_Length_L if there are
@@ -291,7 +295,6 @@ procedure Isbntest is
       checks(index) := check_digit;
       index         := index + 1;
 
-
    exception
       when Multiple_Wilds =>
          Put( "Error in Line " ); Put( line, 0); Put(".  ");
@@ -310,11 +313,12 @@ procedure Isbntest is
          Put_Line( "Invalid characters in string: <" & in_str & ">" );
    end ParseInput;
 
+
    ----------------------------------------------------------
    -- Purpose: Print a single ISBN
-   -- Parameters: x, y: values to multiply
+   -- Parameters: isbn_to_put: ISBN that should be printed
    ----------------------------------------------------------
-   procedure Put_ISBN( isbn_to_put : ISBN )
+   procedure Put_ISBN( isbn_to_put : in ISBN )
    is
    begin
       for i in isbn_to_put'range loop
@@ -322,26 +326,27 @@ procedure Isbntest is
       end loop;
    end Put_ISBN;
 
+
    ----------------------------------------------------------
    -- Print an ISBN formatted according to specifications
-   -- Parameters: x, y: values to multiply
+   -- Parameters:  isbn_to_put: ISBN to print
+   --                    check: check digit to print
    ----------------------------------------------------------
-   procedure ISBN_PrettyPrint( i : in ISBN; c : in Integer )
+   procedure ISBN_PrettyPrint( isbn_to_put : in ISBN; check : in Integer )
    is
    begin
       Set_Col(4);
-      Put_ISBN( i );
+      Put_ISBN( isbn_to_put );
       Put( " " );
-      Put( c, 0 );
+      Put( check, 0 );
       New_Line;
    end ISBN_PrettyPrint;
 
+
    ----------------------------------------------------------
    -- Purpose: Print all ISBNs followed by their check digits.
-   -- Parameters: isbns: in ISBN_Array;
-   --         checksums: in checksum_Array
-   -- Precondition: x <= y
-   -- Postcondition: Returns product of x and y
+   -- Parameters: isbns: array of ISBNs to print
+   --         checksums: array of corresponding checksums
    ----------------------------------------------------------
    procedure Print_ISBNS(isbns : in ISBN_Array; checksums : in checksum_Array)
    is
@@ -377,17 +382,17 @@ procedure Isbntest is
    ----------------------------------------------------------
    isbns      : ISBN_Array(1..1000);
    checksums  : checksum_Array(1..1000) := (others => -1);
-   next_index : Integer := 1;
-   line       : Integer := 0;
+   next_index : Integer := 1;    -- next free index in arrays
+   line       : Integer := 0;    -- current line number of input
 begin
    while not End_Of_File loop
       declare
-         s : String := Get_Line;
+         next_line : String := Get_Line;
       begin
          line := line + 1;
-         ParseInput( s, isbns, checksums, next_index, line );
+         ParseInput( next_line, isbns, checksums, next_index, line );
       end;
    end loop;
 
-  Print_ISBNS( isbns, checksums );
+   Print_ISBNS( isbns, checksums );
 end Isbntest;
