@@ -348,14 +348,16 @@ procedure Isbntest is
    -- Parameters: isbns: array of ISBNs to print
    --         checksums: array of corresponding checksums
    ----------------------------------------------------------
-   procedure Print_ISBNS(isbns : in ISBN_Array; checksums : in checksum_Array)
+   procedure Print_ISBNS(    isbns : in ISBN_Array;
+                         checksums : in checksum_Array;
+                        last_index : in Natural)
    is
    begin
       New_Line;
       -- Print all ISBNs with valid Checksums.
       Put_Line("Valid Check Sums:");
       for i in checksums'Range loop
-         exit when checksums(i) = -1;
+         exit when i = last_index;
 
          if checksums(i) = 0 then
             ISBN_PrettyPrint( isbns(i), checksums(i) );
@@ -367,7 +369,7 @@ procedure Isbntest is
       --  Print all ISBNs with invalid Checksums.
       Put_Line("Invalid Check Sums:");
       for i in checksums'Range loop
-         exit when checksums(i) = -1;
+         exit when i = last_index;
 
          if checksums(i) > 0 then
             ISBN_PrettyPrint( isbns(i), checksums(i) );
@@ -381,7 +383,7 @@ procedure Isbntest is
    --    Valid and Invalid.
    ----------------------------------------------------------
    isbns      : ISBN_Array(1..1000);
-   checksums  : checksum_Array(1..1000) := (others => -1);
+   checksums  : checksum_Array(1..1000);
    next_index : Integer := 1;    -- next free index in arrays
    line       : Integer := 0;    -- current line number of input
 begin
@@ -394,5 +396,5 @@ begin
       end;
    end loop;
 
-   Print_ISBNS( isbns, checksums );
+   Print_ISBNS( isbns, checksums, next_index );
 end Isbntest;
